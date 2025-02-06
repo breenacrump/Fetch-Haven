@@ -1,11 +1,17 @@
 import { Paper, List, ListItem, Box, IconButton, Button } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 
+type FavoritesListProps = {
+    favorites: { id: string; name: string; breed: string }[];
+    onRemove: (dog: { id: string; name: string; breed: string }) => void;
+    onGenerateMatch: () => void;
+};
+
 export default function FavoritesList({
     favorites,
     onRemove,
     onGenerateMatch,
-}) {
+}: FavoritesListProps) {
     return (
         <Paper className="p-4">
             <h2 className="text-xl font-bold mb-4">

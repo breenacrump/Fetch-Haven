@@ -55,7 +55,7 @@ export const SessionProvider = ({
 
             setUser({ name, email });
             setIsAuthenticated(true);
-            router.push("/dashboard");
+            router.push("/search");
             return true;
         } catch (err) {
             setError("Invalid email or password");

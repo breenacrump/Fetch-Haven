@@ -13,20 +13,16 @@ import {
     Select,
     MenuItem,
     Pagination,
+    Chip,
 } from "@mui/material";
 import DogCard from "@/components/DogCard";
 import FavoritesList from "@/components/FavoritesList";
 import LogoutIcon from "@mui/icons-material/Logout";
+import LocationSearch from "@/components/LocationSearch";
+import CloseIcon from "@mui/icons-material/Close";
+import { Dog } from "@/components/DogCard";
 
-type Dog = {
-    id: string;
-    name: string;
-    breed: string;
-    age: number;
-    image: string;
-};
-
-export default function DashboardPage() {
+export default function SearchPage() {
     const { isAuthenticated, logout } = useSession();
     const router = useRouter();
     const [breeds, setBreeds] = useState([]);
@@ -37,7 +33,9 @@ export default function DashboardPage() {
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [showMatch, setShowMatch] = useState(false);
-    const [matchedDog, setMatchedDog] = useState<{ id: string } | null>(null);
+    const [matchedDog, setMatchedDog] = useState<Dog | null>(null);
+    const [zipCodes, setZipCodes] = useState<string[]>([]);
+
 
     useEffect(() => {
         if (!isAuthenticated) {
@@ -49,7 +47,7 @@ export default function DashboardPage() {
 
     useEffect(() => {
         fetchDogs();
-    }, [selectedBreed, sortOrder, currentPage]);
+    }, [selectedBreed, sortOrder, currentPage, zipCodes]);
 
     const fetchBreeds = async () => {
         try {
@@ -76,6 +74,12 @@ export default function DashboardPage() {
 
             if (selectedBreed) {
                 queryParams.append("breeds", selectedBreed);
+            }
+
+            if (zipCodes.length > 0) {
+                zipCodes.forEach(zip => {
+                  queryParams.append('zipCodes', zip);
+                });
             }
 
             const response = await fetch(
@@ -138,7 +142,7 @@ export default function DashboardPage() {
         <div className="min-h-screen bg-gray-50 py-8">
             <Container maxWidth="xl">
                 <div className="flex justify-between items-center mb-8">
-                    <h1 className="text-3xl font-bold">Dog Adoption Search</h1>
+                    <h1 className="text-3xl font-bold text-gray-700">Fetch Haven Adoption Search</h1>
                     <Button
                         variant="outlined"
                         startIcon={<LogoutIcon />}
@@ -152,46 +156,60 @@ export default function DashboardPage() {
                 <Box className="flex flex-col lg:flex-row gap-6">
                     <Box className="flex-1">
                         <Paper className="p-4 mb-4">
-                            <Box className="flex flex-col sm:flex-row gap-4">
-                                <FormControl fullWidth>
-                                    <InputLabel>Breed</InputLabel>
-                                    <Select
-                                        value={selectedBreed}
-                                        label="Breed"
-                                        onChange={(e) =>
-                                            setSelectedBreed(e.target.value)
-                                        }
-                                    >
-                                        <MenuItem value="">All Breeds</MenuItem>
-                                        {breeds.map((breed) => (
-                                            <MenuItem key={breed} value={breed}>
-                                                {breed}
+                            <Box className="flex flex-col gap-4">
+                                <Box className="flex flex-col sm:flex-row gap-4">
+                                    <FormControl fullWidth>
+                                        <InputLabel>Breed</InputLabel>
+                                        <Select
+                                            value={selectedBreed}
+                                            label="Breed"
+                                            onChange={(e) =>
+                                                setSelectedBreed(e.target.value)
+                                            }
+                                        >
+                                            <MenuItem value="">
+                                                All Breeds
                                             </MenuItem>
-                                        ))}
-                                    </Select>
-                                </FormControl>
-                                <FormControl fullWidth>
-                                    <InputLabel>Sort Order</InputLabel>
-                                    <Select
-                                        value={sortOrder}
-                                        label="Sort Order"
-                                        onChange={(e) =>
-                                            setSortOrder(e.target.value)
-                                        }
-                                    >
-                                        <MenuItem value="asc">
-                                            Sort A-Z
-                                        </MenuItem>
-                                        <MenuItem value="desc">
-                                            Sort Z-A
-                                        </MenuItem>
-                                    </Select>
-                                </FormControl>
+                                            {breeds.map((breed) => (
+                                                <MenuItem
+                                                    key={breed}
+                                                    value={breed}
+                                                >
+                                                    {breed}
+                                                </MenuItem>
+                                            ))}
+                                        </Select>
+                                    </FormControl>
+                                    <FormControl fullWidth>
+                                        <InputLabel>Sort Order</InputLabel>
+                                        <Select
+                                            value={sortOrder}
+                                            label="Sort Order"
+                                            onChange={(e) =>
+                                                setSortOrder(e.target.value)
+                                            }
+                                        >
+                                            <MenuItem value="asc">
+                                                Sort A-Z
+                                            </MenuItem>
+                                            <MenuItem value="desc">
+                                                Sort Z-A
+                                            </MenuItem>
+                                        </Select>
+                                    </FormControl>
+                                </Box>
+
+                                <LocationSearch 
+                                    onLocationChange={(newZipCodes: string[]) => {
+                                    setZipCodes(newZipCodes);
+                                    setCurrentPage(1); // Reset to first page when location changes
+                                    }}
+                                />
                             </Box>
                         </Paper>
 
                         <Box className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {dogs.map((dog) => (
+                            {dogs.map((dog: Dog) => (
                                 <DogCard
                                     key={dog.id}
                                     dog={dog}

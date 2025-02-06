@@ -2,12 +2,28 @@ import { Card, CardMedia, CardContent, IconButton } from "@mui/material";
 import FavoriteIcon from "@mui/icons-material/Favorite";
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 
+export type Dog = {
+    id: string;
+    name: string;
+    breed: string;
+    age: number;
+    img: string;
+    zip_code: string;
+};
+
+type DogCardProps = {
+    dog: Dog;
+    isFavorite: boolean;
+    onFavoriteToggle: () => void;
+    showFavorite?: boolean;
+};
+
 export default function DogCard({
     dog,
     isFavorite,
     onFavoriteToggle,
     showFavorite = true,
-}) {
+}: DogCardProps) {
     return (
         <Card className="relative">
             <div className="relative">
