@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 type User = {
@@ -34,6 +34,15 @@ export const SessionProvider = ({
     const [error, setError] = useState("");
     const router = useRouter();
 
+    useEffect(() => {
+        const storedUser = localStorage.getItem("user");
+        if (storedUser) {
+            setUser(JSON.parse(storedUser));
+            setIsAuthenticated(true);
+            router.push("/search");
+        }
+    }, []);
+
     const login = async (name: string, email: string) => {
         try {
             const response = await fetch(
@@ -55,6 +64,7 @@ export const SessionProvider = ({
 
             setUser({ name, email });
             setIsAuthenticated(true);
+            localStorage.setItem("user", JSON.stringify({ name, email }));
             router.push("/search");
             return true;
         } catch (err) {
@@ -74,6 +84,7 @@ export const SessionProvider = ({
             );
             setUser(null);
             setIsAuthenticated(false);
+            localStorage.removeItem("user");
             router.push("/");
         } catch (error) {
             setError("Logout failed");

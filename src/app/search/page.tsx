@@ -39,9 +39,12 @@ export default function SearchPage() {
     const [showMatch, setShowMatch] = useState(false);
     const [matchedDog, setMatchedDog] = useState<Dog | null>(null);
     const [zipCodes, setZipCodes] = useState<string[]>([]);
-    const [loadingBreeds, setLoadingBreeds] = useState(true);
+    const [isLoadingBreeds, setIsLoadingBreeds] = useState(true);
     const [errorLoadingBreeds, setErrorLoadingBreeds] = useState(null);
     const [pageSize, setPageSize] = useState(24);
+    const [isLoadingDogs, setIsLoadingDogs] = useState(true);
+    const [ageMin, setAgeMin] = useState<string>('');
+    const [ageMax, setAgeMax] = useState<string>('');
 
     useEffect(() => {
         if (!isAuthenticated) {
@@ -53,7 +56,7 @@ export default function SearchPage() {
 
     useEffect(() => {
         fetchDogs();
-    }, [selectedBreed, sortOrder, currentPage, zipCodes, pageSize]);
+    }, [selectedBreed, sortOrder, currentPage, zipCodes, pageSize, ageMin, ageMax]);
 
     const fetchBreeds = async () => {
         try {
@@ -65,7 +68,7 @@ export default function SearchPage() {
             );
             const data = await response.json();
             setBreeds(data);
-            setLoadingBreeds(false);
+            setIsLoadingBreeds(false);
         } catch (error) {
             setErrorLoadingBreeds(error.message);
             console.error("Error fetching breeds:", error);
@@ -74,6 +77,7 @@ export default function SearchPage() {
 
     const fetchDogs = async () => {
         try {
+            setIsLoadingDogs(true);
             const queryParams = new URLSearchParams({
                 sort: `breed:${sortOrder}`,
                 size: pageSize.toString(),
@@ -90,6 +94,14 @@ export default function SearchPage() {
                 zipCodes.forEach((zip) => {
                     queryParams.append("zipCodes", zip);
                 });
+            }
+
+            if (ageMin) {
+                queryParams.append('ageMin', ageMin);
+            }
+            
+            if (ageMax) {
+                queryParams.append('ageMax', ageMax);
             }
 
             const response = await fetch(
@@ -110,6 +122,7 @@ export default function SearchPage() {
 
             const dogsData = await dogsResponse.json();
             setDogs(dogsData);
+            setIsLoadingDogs(false);
             setTotalPages(Math.ceil(searchData.total / pageSize));
         } catch (error) {
             console.error("Error fetching dogs:", error);
@@ -180,7 +193,7 @@ export default function SearchPage() {
                                             multiple
                                             id="breed-select"
                                             options={breeds}
-                                            loading={loadingBreeds}
+                                            loading={isLoadingBreeds}
                                             onChange={handleChange}
                                             getOptionLabel={(option) => option}
                                             renderInput={(params) => (
@@ -197,7 +210,7 @@ export default function SearchPage() {
                                                             ...params.InputProps,
                                                             endAdornment: (
                                                                 <>
-                                                                    {loadingBreeds ? (
+                                                                    {isLoadingBreeds ? (
                                                                         <CircularProgress
                                                                             color="inherit"
                                                                             size={20}
@@ -252,6 +265,53 @@ export default function SearchPage() {
                                     </FormControl>
                                 </Box>
 
+                                <Box className="flex flex-col sm:flex-row gap-4">
+                                    <TextField
+                                        className="w-1/5"
+                                        label="Minimum Age"
+                                        type="text"
+                                        value={ageMin}
+                                        onChange={(e) => {
+                                            const value = e.target.value;
+                                            if (/^\d*$/.test(value)) {
+                                                setAgeMin(value);
+                                                setCurrentPage(1);
+                                            }
+                                        }}
+                                        helperText="Enter minimum age"
+                                        slotProps={{
+                                            input: {
+                                                inputProps: { inputMode: "numeric", pattern: "[0-9]*", min: 0 },
+                                            },
+                                        }}
+                                    />                                  
+                                    <TextField
+                                        className="w-1/5"
+                                        label="Maximum Age"
+                                        type="text"
+                                        value={ageMax}
+                                        onChange={(e) => {
+                                            const value = e.target.value;
+                                            if (/^\d*$/.test(value)) {
+                                                setAgeMax(value);
+                                                setCurrentPage(1);
+                                            }
+                                        }}
+                                        error={ageMax !== '' && ageMin !== '' && Number(ageMax) < Number(ageMin)}
+                                        helperText={
+                                            ageMax !== '' && ageMin !== '' && Number(ageMax) < Number(ageMin)
+                                                ? "Maximum age must be greater than minimum age"
+                                                : "Enter maximum age"
+                                        }
+                                        slotProps={{
+                                            input: {
+                                                inputProps: { inputMode: "numeric", pattern: "[0-9]*", min: 0 },
+                                            },
+                                        }}
+                                    />
+                                </Box>
+
+
                                 <LocationSearch
                                     onLocationChange={(
                                         newZipCodes: string[]
@@ -259,23 +319,31 @@ export default function SearchPage() {
                                         setZipCodes(newZipCodes);
                                         setCurrentPage(1);
                                     }}
+                                    setIsLoadingDogs={setIsLoadingDogs}
                                 />
                             </Box>
                         </Paper>
-
-                        <Box className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {dogs.map((dog: Dog) => (
-                                <DogCard
-                                    key={dog.id}
-                                    dog={dog}
-                                    isFavorite={favorites.some(
-                                        (f) => f.id === dog.id
-                                    )}
-                                    onFavoriteToggle={() => toggleFavorite(dog)}
+                        {isLoadingDogs ? (
+                            <div className="flex justify-center items-center min-h-[500px]">
+                                <CircularProgress 
+                                    size={40}
+                                    thickness={4}
                                 />
-                            ))}
-                        </Box>
-
+                            </div>
+                        ) : (
+                            <Box className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {dogs.map((dog: Dog) => (
+                                    <DogCard
+                                        key={dog.id}
+                                        dog={dog}
+                                        isFavorite={favorites.some(
+                                            (f) => f.id === dog.id
+                                        )}
+                                        onFavoriteToggle={() => toggleFavorite(dog)}
+                                    />
+                                ))}
+                            </Box>
+                        )}
                         <Box className="flex justify-center mt-8">
                             <Pagination
                                 count={totalPages}
