@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   Box,
   FormControl,
@@ -10,172 +10,260 @@ import {
   Chip,
   Paper,
   Autocomplete,
-  AutocompleteRenderGetTagProps
+  AutocompleteRenderGetTagProps,
+  FormControlLabel,
+  Switch    
 } from '@mui/material';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import ClearIcon from '@mui/icons-material/Clear';
+import {useDidMountEffect} from '@/hooks/useDidMountEffect';
+import LocationOn from '@mui/icons-material/LocationOn';
+import { searchRadiusOptions, states } from '@/const/locationSearch';
 
 export default function LocationSearch({ onLocationChange }: { onLocationChange: (zipCodes: string[]) => void }) {
-  const [states, setStates] = useState<string[]>([]);
   const [selectedStates, setSelectedStates] = useState<string[]>([]);
-  const [city, setCity] = useState('');
+  const [city, setCity] = useState<string>('');
   const [zipCodes, setZipCodes] = useState<string[]>([]);
-  const [boundingBox, setBoundingBox] = useState<{ bottom_left: { lat: number, lon: number }, top_right: { lat: number, lon: number } } | null>(null);
+  const [currentLocationBoundingBox, setCurrentLocationBoundingBox] = useState<{ bottom_left: { lat: number, lon: number }, top_right: { lat: number, lon: number } } | null >(null);
+  const [searchRadius, setSearchRadius] = useState<number>(50);
+  const [useMyLocation, setUseMyLocation] = useState<boolean>(false);
 
-  useEffect(() => {
-    fetchStates();
-  }, []);
-
-  // Automatically search when criteria changes
-  useEffect(() => {
-    if (city || selectedStates.length > 0 || boundingBox) {
+useEffect(() => {
+    if (city || selectedStates.length > 0) {
       searchLocations();
+    } else {
+        onLocationChange([]);
     }
-  }, [city, selectedStates, boundingBox]);
+  }, [city, selectedStates]);
 
-  // Get user's current location to center the search
-  const getCurrentLocation = () => {
+
+  useEffect(() => {
+    if (useMyLocation) {
+        searchLocations();
+    }
+  }, [currentLocationBoundingBox, searchRadius]);
+
+
+  const setCurrentLocation =() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          const { latitude, longitude } = position.coords;
-          // Create a bounding box around the user's location (roughly 50 mile radius)
-          const boxSize = 0.7246; // roughly 50 miles in degrees
-          setBoundingBox({
-            bottom_left: {
-              lat: latitude - boxSize,
-              lon: longitude - boxSize
-            },
-            top_right: {
-              lat: latitude + boxSize,
-              lon: longitude + boxSize
-            }
-          });
-          searchLocations();
+            const { latitude, longitude } = position.coords;
+            setCurrentLocationBoundingBox(calculateBoundingBox(latitude, longitude, searchRadius));
         },
         (error) => console.error('Error getting location:', error)
       );
     }
   };
 
-  const searchLocations = async () => {
-    try {
-      const response = await fetch('https://frontend-take-home-service.fetch.com/locations/search', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          city: city || undefined,
-          states: selectedStates.length > 0 ? selectedStates : undefined,
-          geoBoundingBox: boundingBox || undefined,
-          size: 100
-        })
-      });
-
-      const data = await response.json();
-      const newZipCodes = data.results.map((location: { zip_code: string }) => location.zip_code);
-      setZipCodes(newZipCodes);
-      onLocationChange(newZipCodes);
-    } catch (error) {
-      console.error('Error searching locations:', error);
-    }
+const calculateBoundingBox = (latitude: number, longitude: number, radius: number) => {
+    const boxSize = radius / 69; // Roughly 1 degree of latitude is about 69 miles
+    return {
+      bottom_left: {
+        lat: latitude - boxSize,
+        lon: longitude - boxSize
+      },
+      top_right: {
+        lat: latitude + boxSize,
+        lon: longitude + boxSize
+      }
+    };
   };
 
-  // Get unique states from the sample location data
-  const fetchStates = async () => {
+//   const getCityOrStateLocation = async () => {
+//     const locationResponse = await fetch(
+//         "https://frontend-take-home-service.fetch.com/locations/search",
+//         {
+//             method: "POST",
+//             headers: {
+//                 "Content-Type": "application/json",
+//             },
+//             credentials: "include",
+//             body: JSON.stringify({
+//                 city: city || undefined,
+//                 states:
+//                     selectedStates.length > 0
+//                         ? selectedStates
+//                         : undefined,
+//                 size: 1, // We only need one location to get lat/lon
+//             }),
+//         }
+//     );
+//     return locationResponse.json()
+//   };
+
+  const searchLocations = async () => {
     try {
-      // This would ideally come from an API endpoint
-      // For now, using a subset of US states
-      setStates([
-        'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA',
-        'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD',
-        'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ',
-        'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC',
-        'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY'
-      ]);
+        const geoBoundingBox = useMyLocation ? currentLocationBoundingBox : undefined;
+        console.log('geoBoundingBox', geoBoundingBox);
+        console.log('city', city);
+        console.log('selectedStates', selectedStates);
+            const response = await fetch(
+                "https://frontend-take-home-service.fetch.com/locations/search",
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    credentials: "include",
+                    body: JSON.stringify({
+                        city: city || undefined,
+                        states:
+                            selectedStates.length > 0
+                                ? selectedStates
+                                : undefined,
+                        geoBoundingBox,
+                        size: 100,
+                    }),
+                }
+            );
+
+            const data = await response.json();
+            const newZipCodes = data.results.map(
+                (location: { zip_code: string }) => location.zip_code
+            );
+            console.log('newZipCodes', newZipCodes);
+            setZipCodes(newZipCodes);
+            onLocationChange(newZipCodes);
     } catch (error) {
-      console.error('Error fetching states:', error);
+        console.error("Error searching locations:", error);
     }
   };
 
   const clearAllLocations = () => {
+    setUseMyLocation(false);
     setSelectedStates([]);
     setCity('');
-    setBoundingBox(null);
+    setCurrentLocationBoundingBox(null);
     setZipCodes([]);
+    setSearchRadius(50);
     onLocationChange([]);
   };
 
+  const handleUseMyLocation = () => {
+    setCurrentLocation();
+    setSelectedStates([]);
+    setCity('');
+  }
+
   return (
-    <Paper className="p-4 mb-4 shadow-md">
-      <h3 className="text-lg font-bold mb-4">Location Search</h3>
-      <Box className="flex flex-col space-y-4">
-        <Box className="flex flex-col sm:flex-row gap-4">
-        <FormControl fullWidth>
-            <Autocomplete
-              multiple
-              size="small"
-              options={states}
-              value={selectedStates}
-              disableCloseOnSelect={true}
-              openOnFocus={true}
-              autoHighlight={true}
-              filterSelectedOptions={true}
-              onChange={(event: any, newValue: string[]) => {
-                setSelectedStates(newValue);
-              }}
-              renderInput={(params: any) => (
-                <TextField
-                  {...params}
-                  label="States"
-                  placeholder="Select states"
-                  size="small"
-                />
-              )}
-              renderTags={(value: string[], getTagProps: AutocompleteRenderGetTagProps) => 
-                value.map((option: string, index: number) => (
-                  <Chip
-                    label={option}
-                    {...getTagProps({ index })}
-                    size="small"
-                    key={option}
+      <Paper className="p-4 mb-4 shadow-md">
+          <h3 className="text-lg font-bold mb-4">Location Search</h3>
+          <Box className="flex flex-col space-y-4">
+              <Box className="flex flex-col sm:flex-row gap-4">
+                  <FormControl fullWidth>
+                      <Autocomplete
+                          multiple={true}
+                          size="small"
+                          options={states}
+                          value={selectedStates}
+                          disableCloseOnSelect={true}
+                          openOnFocus={true}
+                          autoHighlight={true}
+                          filterSelectedOptions={true}
+                          disabled={useMyLocation}
+                          onChange={(event, newValues, reason) => {
+                              if (reason === "clear" || !newValues.length) {
+                                  console.log("newValues", newValues);
+                                  // Handle clear all
+                                  setSelectedStates([]);
+                                //   searchLocations();
+                              } else {
+                                  // Handle selection
+                                  setSelectedStates(newValues);
+                              }
+                          }}
+                          // onChange={(e, newValue) => setSelectedStates(newValue)}
+                          renderInput={(params: any) => (
+                              <TextField
+                                  {...params}
+                                  label="States"
+                                  placeholder="Select states"
+                                  size="small"
+                                  disabled={useMyLocation}
+                              />
+                          )}
+                          renderTags={(
+                              value: string[],
+                              getTagProps: AutocompleteRenderGetTagProps
+                          ) =>
+                              value.map((option: string, index: number) => (
+                                  <Chip
+                                      label={option}
+                                      {...getTagProps({ index })}
+                                      size="small"
+                                      key={option}
+                                  />
+                              ))
+                          }
+                      />
+                  </FormControl>
+
+                  <TextField
+                      label="City"
+                      value={city}
+                      onChange={(e) => setCity(e.target.value)}
+                      fullWidth={true}
+                      size="small"
+                      disabled={useMyLocation}
                   />
-                ))
-              }
-            />
-          </FormControl>
-          
-          <TextField
-            label="City"
-            value={city}
-            onChange={(e) => setCity(e.target.value)}
-            fullWidth={true}
-            size="small"
-          />
-        </Box>
+              </Box>
 
-        <Box className="flex justify-between items-center">
-          <Button
-            startIcon={<LocationOnIcon />}
-            variant="outlined"
-            onClick={getCurrentLocation}
-          >
-            Use My Location
-          </Button>
-
-          <Button
-              startIcon={<ClearIcon />}
-              variant="outlined"
-              onClick={clearAllLocations}
-              size="small"
-              color="error"
-            >
-              Clear Location
-          </Button>
-        </Box>
-      </Box>
-    </Paper>
+              <Box className="flex items-center">
+                  <Box className="flex items-center">
+                      <FormControlLabel
+                          control={
+                              <Switch
+                                  checked={useMyLocation}
+                                  onChange={(e) => {
+                                      setUseMyLocation(e.target.checked);
+                                      if (e.target.checked) {
+                                          handleUseMyLocation(); // Call the function to clear states and city
+                                      } else {
+                                          onLocationChange([]);
+                                      }
+                                  }}
+                              />
+                          }
+                          label={
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                 <LocationOn fontSize="small" />Use My Location
+                            </span>
+                          }
+                      />
+                  </Box>
+                    { useMyLocation && (
+                  <FormControl className='w-[160px] flex flex-row'>
+                      <div id="search-radius-label mb-8">
+                          Search Radius (miles)
+                      </div>
+                      <Select
+                          labelId="search-radius-label"
+                          value={searchRadius}
+                          onChange={(e) =>
+                              setSearchRadius(e.target.value as number)
+                          }
+                          size="small"
+                      >
+                          { searchRadiusOptions.map((value) => (
+                              <MenuItem key={value} value={value}>{value}</MenuItem>
+                          )) }
+                      </Select>
+                  </FormControl>
+                  )}
+                <Box className="ml-auto">
+                  <Button
+                      startIcon={<ClearIcon />}
+                      variant="outlined"
+                      onClick={clearAllLocations}
+                      size="small"
+                      color="error"
+                  >
+                      Clear Location
+                  </Button>
+                  </Box>
+              </Box>
+          </Box>
+      </Paper>
   );
 }
