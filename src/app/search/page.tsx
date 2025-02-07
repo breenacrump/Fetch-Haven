@@ -14,6 +14,9 @@ import {
     MenuItem,
     Pagination,
     Chip,
+    Autocomplete,
+    TextField,
+    CircularProgress,
 } from "@mui/material";
 import DogCard from "@/components/DogCard";
 import FavoritesList from "@/components/FavoritesList";
@@ -21,12 +24,13 @@ import LogoutIcon from "@mui/icons-material/Logout";
 import LocationSearch from "@/components/LocationSearch";
 import CloseIcon from "@mui/icons-material/Close";
 import { Dog } from "@/components/DogCard";
+import { AutoAwesome } from "@mui/icons-material";
 
 export default function SearchPage() {
     const { isAuthenticated, logout } = useSession();
     const router = useRouter();
     const [breeds, setBreeds] = useState([]);
-    const [selectedBreed, setSelectedBreed] = useState("");
+    const [selectedBreed, setSelectedBreed] = useState([]);
     const [dogs, setDogs] = useState([]);
     const [favorites, setFavorites] = useState<{ id: string }[]>([]);
     const [sortOrder, setSortOrder] = useState("asc");
@@ -35,7 +39,9 @@ export default function SearchPage() {
     const [showMatch, setShowMatch] = useState(false);
     const [matchedDog, setMatchedDog] = useState<Dog | null>(null);
     const [zipCodes, setZipCodes] = useState<string[]>([]);
-
+    const [loadingBreeds, setLoadingBreeds] = useState(true);
+    const [errorLoadingBreeds, setErrorLoadingBreeds] = useState(null);
+    const [pageSize, setPageSize] = useState(24);
 
     useEffect(() => {
         if (!isAuthenticated) {
@@ -47,7 +53,7 @@ export default function SearchPage() {
 
     useEffect(() => {
         fetchDogs();
-    }, [selectedBreed, sortOrder, currentPage, zipCodes]);
+    }, [selectedBreed, sortOrder, currentPage, zipCodes, pageSize]);
 
     const fetchBreeds = async () => {
         try {
@@ -59,7 +65,9 @@ export default function SearchPage() {
             );
             const data = await response.json();
             setBreeds(data);
+            setLoadingBreeds(false);
         } catch (error) {
+            setErrorLoadingBreeds(error.message);
             console.error("Error fetching breeds:", error);
         }
     };
@@ -68,17 +76,19 @@ export default function SearchPage() {
         try {
             const queryParams = new URLSearchParams({
                 sort: `breed:${sortOrder}`,
-                size: "20",
-                from: ((currentPage - 1) * 20).toString(),
+                size: pageSize.toString(),
+                from: ((currentPage - 1) * pageSize).toString(),
             });
 
-            if (selectedBreed) {
-                queryParams.append("breeds", selectedBreed);
+            if (selectedBreed.length) {
+                selectedBreed.forEach((breed) => {
+                    queryParams.append("breeds", breed);
+                });
             }
 
-            if (zipCodes.length > 0) {
-                zipCodes.forEach(zip => {
-                  queryParams.append('zipCodes', zip);
+            if (zipCodes.length) {
+                zipCodes.forEach((zip) => {
+                    queryParams.append("zipCodes", zip);
                 });
             }
 
@@ -100,7 +110,7 @@ export default function SearchPage() {
 
             const dogsData = await dogsResponse.json();
             setDogs(dogsData);
-            setTotalPages(Math.ceil(searchData.total / 20));
+            setTotalPages(Math.ceil(searchData.total / pageSize));
         } catch (error) {
             console.error("Error fetching dogs:", error);
         }
@@ -138,11 +148,18 @@ export default function SearchPage() {
         });
     };
 
+    const handleChange = (event, newValue) => {
+        setSelectedBreed(newValue);
+        setCurrentPage(1);
+    };
+
     return (
         <div className="min-h-screen bg-gray-50 py-8">
             <Container maxWidth="xl">
                 <div className="flex justify-between items-center mb-8">
-                    <h1 className="text-3xl font-bold text-gray-700">Fetch Haven Adoption Search</h1>
+                    <h1 className="text-3xl font-bold text-gray-700">
+                        Fetch Haven Adoption Search
+                    </h1>
                     <Button
                         variant="outlined"
                         startIcon={<LogoutIcon />}
@@ -159,27 +176,63 @@ export default function SearchPage() {
                             <Box className="flex flex-col gap-4">
                                 <Box className="flex flex-col sm:flex-row gap-4">
                                     <FormControl fullWidth>
-                                        <InputLabel>Breed</InputLabel>
-                                        <Select
-                                            value={selectedBreed}
-                                            label="Breed"
-                                            onChange={(e) =>
-                                                setSelectedBreed(e.target.value)
+                                        <Autocomplete
+                                            multiple
+                                            id="breed-select"
+                                            options={breeds}
+                                            loading={loadingBreeds}
+                                            onChange={handleChange}
+                                            getOptionLabel={(option) => option}
+                                            renderInput={(params) => (
+                                                <TextField
+                                                    {...params}
+                                                    label="Breeds"
+                                                    placeholder="Search breeds..."
+                                                    error={!!errorLoadingBreeds}
+                                                    helperText={
+                                                        errorLoadingBreeds
+                                                    }
+                                                    slotProps={{
+                                                        input: {
+                                                            ...params.InputProps,
+                                                            endAdornment: (
+                                                                <>
+                                                                    {loadingBreeds ? (
+                                                                        <CircularProgress
+                                                                            color="inherit"
+                                                                            size={20}
+                                                                        />
+                                                                    ) : null}
+                                                                    {
+                                                                        params.InputProps?.endAdornment
+                                                                    }
+                                                                </>
+                                                            ),
+                                                        },
+                                                    }}
+                                                />
+                                            )}
+                                            renderTags={(value, getTagProps) =>
+                                                value.map((option, index) => (
+                                                    <Chip
+                                                        label={option}
+                                                        {...getTagProps({
+                                                            index,
+                                                        })}
+                                                        color="primary"
+                                                        variant="outlined"
+                                                        key={option}
+                                                    />
+                                                ))
                                             }
-                                        >
-                                            <MenuItem value="">
-                                                All Breeds
-                                            </MenuItem>
-                                            {breeds.map((breed) => (
-                                                <MenuItem
-                                                    key={breed}
-                                                    value={breed}
-                                                >
-                                                    {breed}
-                                                </MenuItem>
-                                            ))}
-                                        </Select>
+                                            filterSelectedOptions
+                                            isOptionEqualToValue={(
+                                                option,
+                                                value
+                                            ) => option === value}
+                                        />
                                     </FormControl>
+
                                     <FormControl fullWidth>
                                         <InputLabel>Sort Order</InputLabel>
                                         <Select
@@ -199,10 +252,12 @@ export default function SearchPage() {
                                     </FormControl>
                                 </Box>
 
-                                <LocationSearch 
-                                    onLocationChange={(newZipCodes: string[]) => {
-                                    setZipCodes(newZipCodes);
-                                    setCurrentPage(1); // Reset to first page when location changes
+                                <LocationSearch
+                                    onLocationChange={(
+                                        newZipCodes: string[]
+                                    ) => {
+                                        setZipCodes(newZipCodes);
+                                        setCurrentPage(1);
                                     }}
                                 />
                             </Box>
@@ -228,6 +283,22 @@ export default function SearchPage() {
                                 onChange={(e, page) => setCurrentPage(page)}
                                 color="primary"
                             />
+                            <FormControl className="w-[100px]">
+                                <InputLabel>Page Size</InputLabel>
+                                <Select
+                                    value={pageSize}
+                                    label="Page Size"
+                                    onChange={(e) => {
+                                        setPageSize(Number(e.target.value));
+                                        setCurrentPage(1);
+                                    }}
+                                >
+                                    <MenuItem value={24}>24</MenuItem>
+                                    <MenuItem value={36}>36</MenuItem>
+                                    <MenuItem value={48}>48</MenuItem>
+                                    <MenuItem value={60}>100</MenuItem>
+                                </Select>
+                            </FormControl>
                         </Box>
                     </Box>
 
