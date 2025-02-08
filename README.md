@@ -1,6 +1,44 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Fetch Haven
 
-## Getting Started
+## Project Overview
+
+Fetch Haven is an innovative web application crafted for dog enthusiasts seeking their ideal furry companion. With our platform, users can effortlessly explore a variety of shelter dogs, apply filters by breed, and save their favorites to create the perfect adoption match.
+
+
+## Required Features
+
+* User Authentication: Users must log in with their name and email.
+
+* Dog Search & Filtering: Browse available dogs with filtering options by breed.
+
+* Sorting & Pagination: Sort results alphabetically by breed (ascending/descending) and paginate through search results.
+
+* Favorites & Matching: Users can favorite dogs and generate an adoption match.
+
+* User-Friendly Interface: Built with a responsive and accessible UI.
+
+
+## Extra Features
+
+* Filter dogs by state location for more targeted searches.
+
+* Filter dogs by city location to find nearby options.
+
+* Utilize the current user location to discover local shelter dogs.
+
+* Set a search radius based on the current user location for more precise results.
+
+* Filter dogs by age range to match specific preferences.
+
+## Installation & Setup
+
+### Prerequisites
+
+Ensure you have the following installed:
+
+Node.js (v16+)
+
+### Getting Started
 
 First, run the development server:
 
@@ -16,21 +54,18 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Contributing
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. Fork the repository.
 
-## Learn More
+2. Create a new branch: git checkout -b feature-name.
 
-To learn more about Next.js, take a look at the following resources:
+3. Commit your changes: git commit -m "Added new feature".
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+4. Push to the branch: git push origin feature-name.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+5. Submit a pull request.
 
-## Deploy on Vercel
+## Contact
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+For any questions, feel free to reach out or open an issue in the repository.

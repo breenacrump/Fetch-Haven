@@ -14,14 +14,14 @@ export type Dog = {
 type DogCardProps = {
     dog: Dog;
     isFavorite: boolean;
-    onFavoriteToggle: () => void;
+    onFavoriteToggle?: () => void;
     showFavorite?: boolean;
 };
 
 export default function DogCard({
     dog,
     isFavorite,
-    onFavoriteToggle,
+    onFavoriteToggle = () => {},
     showFavorite = true,
 }: DogCardProps) {
     return (
@@ -35,7 +35,6 @@ export default function DogCard({
                     className="h-48 w-full object-cover"
                 />
             </div>
-
             <CardContent>
                 <div className="flex justify-between items-center">
                     <h3 className="text-xl font-bold">{dog.name}</h3>
@@ -52,7 +51,6 @@ export default function DogCard({
                         </IconButton>
                     )}
                 </div>
-
                 <p className="text-gray-600">Breed: {dog.breed}</p>
                 <p className="text-gray-600">Age: {dog.age} years</p>
                 <p className="text-gray-600">Location: {dog.zip_code}</p>

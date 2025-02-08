@@ -8,6 +8,11 @@ type User = {
     email: string;
 };
 
+type SessionData = {
+    user: User;
+    expiresAt: number;
+};
+
 const SessionContext = createContext<{
     user: User | null;
     isAuthenticated: boolean;
@@ -34,12 +39,25 @@ export const SessionProvider = ({
     const [error, setError] = useState("");
     const router = useRouter();
 
+    const clearSession = () => {
+        setUser(null);
+        setIsAuthenticated(false);
+        localStorage.removeItem("sessionData");
+        router.push("/");
+    };
+
     useEffect(() => {
-        const storedUser = localStorage.getItem("user");
-        if (storedUser) {
-            setUser(JSON.parse(storedUser));
-            setIsAuthenticated(true);
-            router.push("/search");
+        const sessionData = localStorage.getItem("sessionData");
+        if (sessionData) {
+            const { user, expiresAt } = JSON.parse(sessionData);
+
+            if (Date.now() < expiresAt) {
+                setUser(user);
+                setIsAuthenticated(true);
+                router.push("/search");
+            } else {
+                clearSession();
+            }
         }
     }, []);
 
@@ -61,9 +79,18 @@ export const SessionProvider = ({
                 throw new Error("Login failed");
             }
 
-            setUser({ name, email });
+            const userData = { name, email };
+            // The session expires in 1 hour
+            const expiresAt = Date.now() + 60 * 60 * 1000;
+
+            const sessionData: SessionData = {
+                user: userData,
+                expiresAt,
+            };
+
+            setUser(userData);
             setIsAuthenticated(true);
-            localStorage.setItem("user", JSON.stringify({ name, email }));
+            localStorage.setItem("sessionData", JSON.stringify(sessionData));
             router.push("/search");
             return true;
         } catch (err) {
@@ -81,10 +108,7 @@ export const SessionProvider = ({
                     credentials: "include",
                 }
             );
-            setUser(null);
-            setIsAuthenticated(false);
-            localStorage.removeItem("user");
-            router.push("/");
+            clearSession();
         } catch (error) {
             setError("Logout failed");
             console.error("Logout error:", error);

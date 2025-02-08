@@ -38,7 +38,7 @@ export default function SearchPage() {
     const [matchedDog, setMatchedDog] = useState<Dog | null>(null);
     const [zipCodes, setZipCodes] = useState<string[]>([]);
     const [isLoadingBreeds, setIsLoadingBreeds] = useState(true);
-    const [errorLoadingBreeds, setErrorLoadingBreeds] = useState(null);
+    const [errorLoadingBreeds, setErrorLoadingBreeds] = useState<string | null>(null);
     const [pageSize, setPageSize] = useState(24);
     const [isLoadingDogs, setIsLoadingDogs] = useState(true);
     const [ageMin, setAgeMin] = useState<string>("");
@@ -64,6 +64,12 @@ export default function SearchPage() {
         ageMax,
     ]);
 
+    useEffect(() => {
+        if (!favorites.length || (matchedDog && !favorites.some(dog => dog.id === matchedDog.id))) {
+            setMatchedDog(null);
+        }
+    }, [favorites]);
+
     const fetchBreeds = async () => {
         try {
             const response = await fetch(
@@ -76,7 +82,7 @@ export default function SearchPage() {
             setBreeds(data);
             setIsLoadingBreeds(false);
         } catch (error) {
-            setErrorLoadingBreeds(error.message);
+            setErrorLoadingBreeds((error as Error).message);
             console.error("Error fetching breeds:", error);
         }
     };
@@ -84,31 +90,51 @@ export default function SearchPage() {
     const fetchDogs = async () => {
         try {
             setIsLoadingDogs(true);
-            const queryParams = new URLSearchParams({
-                sort: `breed:${sortOrder}`,
-                size: pageSize.toString(),
-                from: ((currentPage - 1) * pageSize).toString(),
-            });
 
-            if (selectedBreed.length) {
-                selectedBreed.forEach((breed) => {
-                    queryParams.append("breeds", breed);
-                });
-            }
+            const applyFilters = (params: URLSearchParams) => {
+                if (selectedBreed.length) {
+                    selectedBreed.forEach((breed) => {
+                        params.append("breeds", breed);
+                    });
+                }
+                if (zipCodes.length) {
+                    zipCodes.forEach((zip) => {
+                        params.append("zipCodes", zip);
+                    });
+                }
+                if (ageMin) {
+                    params.append("ageMin", ageMin);
+                }
+                if (ageMax) {
+                    params.append("ageMax", ageMax);
+                }
+                return params;
+            };
 
-            if (zipCodes.length) {
-                zipCodes.forEach((zip) => {
-                    queryParams.append("zipCodes", zip);
-                });
-            }
+            const countQueryParams = applyFilters(
+                new URLSearchParams({
+                    sort: `breed:${sortOrder}`,
+                })
+            );
 
-            if (ageMin) {
-                queryParams.append("ageMin", ageMin);
-            }
+            const countResponse = await fetch(
+                `https://frontend-take-home-service.fetch.com/dogs/search?${countQueryParams}`,
+                { credentials: "include" }
+            );
 
-            if (ageMax) {
-                queryParams.append("ageMax", ageMax);
-            }
+            const countData = await countResponse.json();
+            const totalResults = countData.total;
+
+            const maxFrom = Math.max(0, totalResults - pageSize);
+            const from = Math.min((currentPage - 1) * pageSize, maxFrom);
+
+            const queryParams = applyFilters(
+                new URLSearchParams({
+                    sort: `breed:${sortOrder}`,
+                    size: pageSize.toString(),
+                    from: from.toString(),
+                })
+            );
 
             const response = await fetch(
                 `https://frontend-take-home-service.fetch.com/dogs/search?${queryParams}`,
@@ -125,7 +151,7 @@ export default function SearchPage() {
                     credentials: "include",
                 }
             );
-
+            
             const dogsData = await dogsResponse.json();
             setDogs(dogsData);
             setIsLoadingDogs(false);
@@ -157,13 +183,13 @@ export default function SearchPage() {
         }
     };
 
-    const toggleFavorite = (dog: Dog) => {
+    const toggleFavorite = (toggledDog: Dog) => {
         setFavorites((prev) => {
-            const exists = prev.find((f) => f.id === dog.id);
+            const exists = prev.find((dog) => dog.id === toggledDog.id);
             if (exists) {
-                return prev.filter((f) => f.id !== dog.id);
+                return prev.filter((dog) => dog.id !== toggledDog.id);
             }
-            return [...prev, dog];
+            return [...prev, toggledDog];
         });
     };
 
@@ -210,9 +236,7 @@ export default function SearchPage() {
                                                     label="Breeds"
                                                     placeholder="Search breeds..."
                                                     error={!!errorLoadingBreeds}
-                                                    helperText={
-                                                        errorLoadingBreeds
-                                                    }
+                                                    helperText={errorLoadingBreeds}
                                                     slotProps={{
                                                         input: {
                                                             ...params.InputProps,
@@ -330,7 +354,6 @@ export default function SearchPage() {
                                         }}
                                     />
                                 </Box>
-
                                 <LocationSearch
                                     onLocationChange={(
                                         newZipCodes: string[]
@@ -353,7 +376,7 @@ export default function SearchPage() {
                                         key={dog.id}
                                         dog={dog}
                                         isFavorite={favorites.some(
-                                            (f) => f.id === dog.id
+                                            (favoriteDog) => favoriteDog.id === dog.id
                                         )}
                                         onFavoriteToggle={() =>
                                             toggleFavorite(dog)
@@ -369,9 +392,10 @@ export default function SearchPage() {
                                 onChange={(e, page) => setCurrentPage(page)}
                                 color="primary"
                             />
-                            <FormControl className="w-[80px] h-[35px]">
+                            <FormControl className="w-[80px]">
                                 <InputLabel>Page Size</InputLabel>
                                 <Select
+                                    className="h-[35px]"
                                     value={pageSize}
                                     label="Page Size"
                                     onChange={(e) => {
@@ -402,7 +426,6 @@ export default function SearchPage() {
                                 <DogCard
                                     dog={matchedDog}
                                     isFavorite={true}
-                                    onFavoriteToggle={() => {}}
                                     showFavorite={false}
                                 />
                             </Paper>

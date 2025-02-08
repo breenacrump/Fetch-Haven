@@ -26,7 +26,6 @@ export default function LocationSearch({
 }) {
     const [selectedStates, setSelectedStates] = useState<string[]>([]);
     const [city, setCity] = useState<string>("");
-    const [zipCodes, setZipCodes] = useState<string[]>([]);
     const [currentLocationBoundingBox, setCurrentLocationBoundingBox] =
         useState<{
             bottom_left: { lat: number; lon: number };
@@ -70,7 +69,8 @@ export default function LocationSearch({
         longitude: number,
         radius: number
     ) => {
-        const boxSize = radius / 69; // Roughly 1 degree of latitude is about 69 miles
+        // Roughly 1 degree of latitude is about 69 miles
+        const boxSize = radius / 69;
         return {
             bottom_left: {
                 lat: latitude - boxSize,
@@ -98,21 +98,16 @@ export default function LocationSearch({
                     credentials: "include",
                     body: JSON.stringify({
                         city: city || undefined,
-                        states:
-                            selectedStates.length > 0
-                                ? selectedStates
-                                : undefined,
+                        states: selectedStates.length ? selectedStates : undefined,
                         geoBoundingBox,
                         size: 100,
                     }),
                 }
             );
-
             const data = await response.json();
             const newZipCodes = data.results.map(
                 (location: { zip_code: string }) => location.zip_code
             );
-            setZipCodes(newZipCodes);
             onLocationChange(newZipCodes);
         } catch (error) {
             console.error("Error searching locations:", error);
@@ -124,7 +119,6 @@ export default function LocationSearch({
         setSelectedStates([]);
         setCity("");
         setCurrentLocationBoundingBox(null);
-        setZipCodes([]);
         setSearchRadius(50);
         onLocationChange([]);
     };
@@ -193,7 +187,6 @@ export default function LocationSearch({
                         disabled={useMyLocation}
                     />
                 </Box>
-
                 <Box className="flex items-center">
                     <Box className="flex items-center">
                         <FormControlLabel
