@@ -1,24 +1,21 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useState, useEffect } from "react";
 import {
-  Box,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  TextField,
-  Button,
-  Chip,
-  Paper,
-  Autocomplete,
-  AutocompleteRenderGetTagProps,
-  FormControlLabel,
-  Switch    
-} from '@mui/material';
-import LocationOnIcon from '@mui/icons-material/LocationOn';
-import ClearIcon from '@mui/icons-material/Clear';
-import {useDidMountEffect} from '@/hooks/useDidMountEffect';
-import LocationOn from '@mui/icons-material/LocationOn';
-import { searchRadiusOptions, states } from '@/const/locationSearch';
+    Box,
+    FormControl,
+    Select,
+    MenuItem,
+    TextField,
+    Button,
+    Chip,
+    Paper,
+    Autocomplete,
+    AutocompleteRenderGetTagProps,
+    FormControlLabel,
+    Switch,
+} from "@mui/material";
+import ClearIcon from "@mui/icons-material/Clear";
+import LocationOn from "@mui/icons-material/LocationOn";
+import { searchRadiusOptions, states } from "@/const/locationSearch";
 
 export default function LocationSearch({
     onLocationChange,
@@ -215,7 +212,10 @@ export default function LocationSearch({
                             }
                             label={
                                 <span className="flex items-center gap">
-                                    <LocationOn fontSize="small" className='text-blue-500' />
+                                    <LocationOn
+                                        fontSize="small"
+                                        className="text-blue-500"
+                                    />
                                     Use My Location
                                 </span>
                             }

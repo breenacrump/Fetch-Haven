@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import { createContext, useContext, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -59,7 +59,6 @@ export const SessionProvider = ({
 
             if (!response.ok) {
                 throw new Error("Login failed");
-                return false;
             }
 
             setUser({ name, email });

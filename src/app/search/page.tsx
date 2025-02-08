@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, SyntheticEvent } from "react";
 import { useSession } from "@/context/SessionContext";
 import { useRouter } from "next/navigation";
 import {
@@ -22,15 +22,13 @@ import DogCard from "@/components/DogCard";
 import FavoritesList from "@/components/FavoritesList";
 import LogoutIcon from "@mui/icons-material/Logout";
 import LocationSearch from "@/components/LocationSearch";
-import CloseIcon from "@mui/icons-material/Close";
 import { Dog } from "@/components/DogCard";
-import { AutoAwesome } from "@mui/icons-material";
 
 export default function SearchPage() {
-    const { isAuthenticated, logout } = useSession();
+    const { isAuthenticated, logout, user } = useSession();
     const router = useRouter();
     const [breeds, setBreeds] = useState([]);
-    const [selectedBreed, setSelectedBreed] = useState([]);
+    const [selectedBreed, setSelectedBreed] = useState<string[]>([]);
     const [dogs, setDogs] = useState([]);
     const [favorites, setFavorites] = useState<{ id: string }[]>([]);
     const [sortOrder, setSortOrder] = useState("asc");
@@ -43,8 +41,8 @@ export default function SearchPage() {
     const [errorLoadingBreeds, setErrorLoadingBreeds] = useState(null);
     const [pageSize, setPageSize] = useState(24);
     const [isLoadingDogs, setIsLoadingDogs] = useState(true);
-    const [ageMin, setAgeMin] = useState<string>('');
-    const [ageMax, setAgeMax] = useState<string>('');
+    const [ageMin, setAgeMin] = useState<string>("");
+    const [ageMax, setAgeMax] = useState<string>("");
 
     useEffect(() => {
         if (!isAuthenticated) {
@@ -56,7 +54,15 @@ export default function SearchPage() {
 
     useEffect(() => {
         fetchDogs();
-    }, [selectedBreed, sortOrder, currentPage, zipCodes, pageSize, ageMin, ageMax]);
+    }, [
+        selectedBreed,
+        sortOrder,
+        currentPage,
+        zipCodes,
+        pageSize,
+        ageMin,
+        ageMax,
+    ]);
 
     const fetchBreeds = async () => {
         try {
@@ -97,11 +103,11 @@ export default function SearchPage() {
             }
 
             if (ageMin) {
-                queryParams.append('ageMin', ageMin);
+                queryParams.append("ageMin", ageMin);
             }
-            
+
             if (ageMax) {
-                queryParams.append('ageMax', ageMax);
+                queryParams.append("ageMax", ageMax);
             }
 
             const response = await fetch(
@@ -143,7 +149,7 @@ export default function SearchPage() {
 
             const { match } = await response.json();
             const matchedDog =
-                favorites.find((dog) => dog.id === match) || null;
+                favorites.find((dog) => dog.id === match) as Dog | null;
             setMatchedDog(matchedDog);
             setShowMatch(true);
         } catch (error) {
@@ -161,7 +167,7 @@ export default function SearchPage() {
         });
     };
 
-    const handleChange = (event, newValue) => {
+    const handleChange = (event: SyntheticEvent<Element, Event>, newValue: string[]) => {
         setSelectedBreed(newValue);
         setCurrentPage(1);
     };
@@ -171,7 +177,9 @@ export default function SearchPage() {
             <Container maxWidth="xl">
                 <div className="flex justify-between items-center mb-8">
                     <h1 className="text-3xl font-bold text-gray-700">
-                        Fetch Haven Adoption Search
+                        {user?.name
+                            ? `Welcome to Fetch Haven Adoption, ${user?.name}!`
+                            : "Welcome to Fetch Haven Adoption!"}
                     </h1>
                     <Button
                         variant="outlined"
@@ -216,9 +224,7 @@ export default function SearchPage() {
                                                                             size={20}
                                                                         />
                                                                     ) : null}
-                                                                    {
-                                                                        params.InputProps?.endAdornment
-                                                                    }
+                                                                    {params.InputProps?.endAdornment}
                                                                 </>
                                                             ),
                                                         },
@@ -281,10 +287,14 @@ export default function SearchPage() {
                                         helperText="Enter minimum age"
                                         slotProps={{
                                             input: {
-                                                inputProps: { inputMode: "numeric", pattern: "[0-9]*", min: 0 },
+                                                inputProps: {
+                                                    inputMode: "numeric",
+                                                    pattern: "[0-9]*",
+                                                    min: 0,
+                                                },
                                             },
                                         }}
-                                    />                                  
+                                    />
                                     <TextField
                                         className="w-1/5"
                                         label="Maximum Age"
@@ -297,20 +307,29 @@ export default function SearchPage() {
                                                 setCurrentPage(1);
                                             }
                                         }}
-                                        error={ageMax !== '' && ageMin !== '' && Number(ageMax) < Number(ageMin)}
+                                        error={
+                                            ageMax !== "" &&
+                                            ageMin !== "" &&
+                                            Number(ageMax) < Number(ageMin)
+                                        }
                                         helperText={
-                                            ageMax !== '' && ageMin !== '' && Number(ageMax) < Number(ageMin)
+                                            ageMax !== "" &&
+                                            ageMin !== "" &&
+                                            Number(ageMax) < Number(ageMin)
                                                 ? "Maximum age must be greater than minimum age"
                                                 : "Enter maximum age"
                                         }
                                         slotProps={{
                                             input: {
-                                                inputProps: { inputMode: "numeric", pattern: "[0-9]*", min: 0 },
+                                                inputProps: {
+                                                    inputMode: "numeric",
+                                                    pattern: "[0-9]*",
+                                                    min: 0,
+                                                },
                                             },
                                         }}
                                     />
                                 </Box>
-
 
                                 <LocationSearch
                                     onLocationChange={(
@@ -325,10 +344,7 @@ export default function SearchPage() {
                         </Paper>
                         {isLoadingDogs ? (
                             <div className="flex justify-center items-center min-h-[500px]">
-                                <CircularProgress 
-                                    size={40}
-                                    thickness={4}
-                                />
+                                <CircularProgress size={40} thickness={4} />
                             </div>
                         ) : (
                             <Box className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -339,19 +355,21 @@ export default function SearchPage() {
                                         isFavorite={favorites.some(
                                             (f) => f.id === dog.id
                                         )}
-                                        onFavoriteToggle={() => toggleFavorite(dog)}
+                                        onFavoriteToggle={() =>
+                                            toggleFavorite(dog)
+                                        }
                                     />
                                 ))}
                             </Box>
                         )}
-                        <Box className="flex justify-center mt-8">
+                        <Box className="flex justify-center mt-8 mb-20">
                             <Pagination
                                 count={totalPages}
                                 page={currentPage}
                                 onChange={(e, page) => setCurrentPage(page)}
                                 color="primary"
                             />
-                            <FormControl className="w-[100px]">
+                            <FormControl className="w-[80px] h-[35px]">
                                 <InputLabel>Page Size</InputLabel>
                                 <Select
                                     value={pageSize}
@@ -372,8 +390,8 @@ export default function SearchPage() {
 
                     <Box className="w-full lg:w-80">
                         <FavoritesList
-                            favorites={favorites}
-                            onRemove={toggleFavorite}
+                            favorites={favorites as { id: string; name: string; breed: string }[]}
+                            onRemove={(dog: { id: string; name: string; breed: string }) => toggleFavorite(dog as Dog)}
                             onGenerateMatch={generateMatch}
                         />
                         {showMatch && matchedDog && (

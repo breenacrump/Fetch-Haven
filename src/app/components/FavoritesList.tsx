@@ -1,5 +1,6 @@
 import { Paper, List, ListItem, Box, IconButton, Button } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
+import { useSession } from "@/context/SessionContext";
 
 type FavoritesListProps = {
     favorites: { id: string; name: string; breed: string }[];
@@ -12,10 +13,13 @@ export default function FavoritesList({
     onRemove,
     onGenerateMatch,
 }: FavoritesListProps) {
+    const { user } = useSession();
+
     return (
         <Paper className="p-4">
             <h2 className="text-xl font-bold mb-4">
-                Favorites ({favorites.length})
+                {user?.name ? `${user.name}'s Favorites` : "Favorites"} (
+                {favorites.length})
             </h2>
             <List className="space-y-2">
                 {favorites.map((dog) => (
