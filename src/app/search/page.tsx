@@ -43,6 +43,7 @@ export default function SearchPage() {
     const [isLoadingDogs, setIsLoadingDogs] = useState(true);
     const [ageMin, setAgeMin] = useState<string>("");
     const [ageMax, setAgeMax] = useState<string>("");
+    const [isLocationSearchActive, setIsLocationSearchActive] = useState(false);
 
     useEffect(() => {
         if (!isAuthenticated) {
@@ -62,6 +63,7 @@ export default function SearchPage() {
         pageSize,
         ageMin,
         ageMax,
+        isLocationSearchActive,
     ]);
 
     useEffect(() => {
@@ -90,6 +92,13 @@ export default function SearchPage() {
     const fetchDogs = async () => {
         try {
             setIsLoadingDogs(true);
+
+            if (isLocationSearchActive && zipCodes.length === 0) {
+                setDogs([]);
+                setTotalPages(0);
+                setIsLoadingDogs(false);
+                return;
+            }
 
             const applyFilters = (params: URLSearchParams) => {
                 if (selectedBreed.length) {
@@ -362,6 +371,7 @@ export default function SearchPage() {
                                         setCurrentPage(1);
                                     }}
                                     setIsLoadingDogs={setIsLoadingDogs}
+                                    onSearchStateChange={setIsLocationSearchActive}
                                 />
                             </Box>
                         </Paper>

@@ -20,9 +20,11 @@ import { searchRadiusOptions, states } from "@/const/locationSearch";
 export default function LocationSearch({
     onLocationChange,
     setIsLoadingDogs,
+    onSearchStateChange,
 }: {
     onLocationChange: (zipCodes: string[]) => void;
     setIsLoadingDogs: (isLoading: boolean) => void;
+    onSearchStateChange: (isLocationSearchActive: boolean) => void;
 }) {
     const [selectedStates, setSelectedStates] = useState<string[]>([]);
     const [city, setCity] = useState<string>("");
@@ -49,6 +51,11 @@ export default function LocationSearch({
             searchLocations();
         }
     }, [currentLocationBoundingBox, searchRadius]);
+
+    useEffect(() => {
+        const isSearching = !!(city || selectedStates.length || useMyLocation);
+        onSearchStateChange(isSearching);
+    }, [city, selectedStates, useMyLocation, onSearchStateChange]);
 
     const setCurrentLocation = () => {
         if (navigator.geolocation) {
@@ -121,6 +128,7 @@ export default function LocationSearch({
         setCurrentLocationBoundingBox(null);
         setSearchRadius(50);
         onLocationChange([]);
+        onSearchStateChange(false);
     };
 
     const handleUseMyLocation = () => {
@@ -128,6 +136,7 @@ export default function LocationSearch({
         setSelectedStates([]);
         setCity("");
         setCurrentLocation();
+        onSearchStateChange(false);
     };
 
     return (
