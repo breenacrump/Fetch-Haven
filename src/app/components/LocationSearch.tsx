@@ -160,6 +160,7 @@ export default function LocationSearch({
                                     placeholder="Select states"
                                     size="small"
                                     disabled={useMyLocation}
+                                    helperText={useMyLocation ? "States selection is disabled when using your location." : ""}
                                 />
                             )}
                             renderTags={(
@@ -185,6 +186,7 @@ export default function LocationSearch({
                         fullWidth={true}
                         size="small"
                         disabled={useMyLocation}
+                        helperText={useMyLocation ? "City input is disabled when using your location." : ""}
                     />
                 </Box>
                 <Box className="flex items-center">

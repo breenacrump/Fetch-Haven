@@ -369,6 +369,11 @@ export default function SearchPage() {
                             <div className="flex justify-center items-center min-h-[500px]">
                                 <CircularProgress size={40} thickness={4} />
                             </div>
+                        ) : !dogs.length ? (
+                            <div className="flex justify-center items-center min-h-[500px] flex-col gap-4">
+                                <h2 className="text-lg font-bold text-gray-700">Unfortunately, we could not find any dogs that match your criteria.</h2>
+                                <h2 className="text-lg font-bold text-gray-700">Every dog deserves a loving home. Please consider expanding your search criteria.</h2>
+                            </div>
                         ) : (
                             <Box className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                 {dogs.map((dog: Dog) => (
