@@ -30,6 +30,10 @@ Fetch Haven is an innovative web application crafted for dog enthusiasts seeking
 
 * Filter dogs by age range to match specific preferences.
 
+* Added Page Size logic to the search results to improve user experience.
+
+* Persisted user session by storing logged-in user information in local storage with a 1 hour expiration since that is the max session time for the backend.
+
 ## Installation & Setup
 
 ### Prerequisites
